@@ -5,8 +5,9 @@
   "license": "MIT",
   "minimum-stability": "dev",
   "prefer-stable": true,
+
   "require": {
-    "php": ">=7.2.5",
+    "php": "^7.4",
     "ext-ctype": "*",
     "ext-iconv": "*",
     "doctrine/annotations": "^1.12",
@@ -16,9 +17,14 @@
     "symfony/framework-bundle": "5.2.*",
     "symfony/yaml": "5.2.*"
   },
+
   "require-dev": {
-    "symfony/maker-bundle": "^1.30"
+    "phpunit/phpunit": "9.3",
+    "symfony/browser-kit": "5.2.*",
+    "symfony/maker-bundle": "^1.30",
+    "symfony/phpunit-bridge": "^5.1"
   },
+
   "config": {
     "optimize-autoloader": true,
     "preferred-install": {
