@@ -2,17 +2,25 @@
 
 namespace App\Controller;
 
+use App\Model\User;
 use App\Service\ApiHelper;
+use App\Service\TauronService;
+use DateTime;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
 class ApiController extends AbstractController {
 
     private ApiHelper $apiHelper;
+    private TauronService $tauronService;
+    private string $dateFormat;
 
-    public function __construct(ApiHelper $apiHelper) {
+    public function __construct(ApiHelper $apiHelper, TauronService $tauronService, string $dateFormat) {
         $this->apiHelper = $apiHelper;
+        $this->tauronService = $tauronService;
+        $this->dateFormat = $dateFormat;
     }
 
     /**
@@ -27,17 +35,18 @@ class ApiController extends AbstractController {
     /**
      * @Route("/days/{date}", methods="GET", name="days")
      */
-    public function days(string $date): JsonResponse {
+    public function days(Request $request, string $date): JsonResponse {
+        $this->apiHelper->checkContentType($request);
+        $this->apiHelper->checkDate($date);
 
-        if (!$this->apiHelper->checkDate($date)) {
-            return $this->json([
-                'error' => 'Invalid date',
-            ], 400);
-        }
+        $date = DateTime::createFromFormat($this->dateFormat, $date);
 
-        return $this->json([
-            'message' => 'Day endpoint',
-        ]);
+        $token = $request->headers->get('Authorization');
+        $user = User::createFromToken($token);
+
+        $dayUsage = $this->tauronService->getDayUsage($date, $user);
+
+        return $this->json($dayUsage);
     }
 
     /**
@@ -45,11 +54,7 @@ class ApiController extends AbstractController {
      */
     public function months(string $monthDate): JsonResponse {
 
-        if (!$this->apiHelper->checkMonthDate($monthDate)) {
-            return $this->json([
-                'error' => 'Invalid date',
-            ], 400);
-        }
+        $this->apiHelper->checkMonthDate($monthDate);
 
         return $this->json([
             'message' => 'Day endpoint',
@@ -59,7 +64,10 @@ class ApiController extends AbstractController {
     /**
      * @Route("/years/{year<\d+>}", methods="GET", name="years")
      */
-    public function years(): JsonResponse {
+    public function years(int $year): JsonResponse {
+
+        $this->apiHelper->checkYear($year);
+
         return $this->json([
             'message' => 'Year endpoint',
         ]);
@@ -84,12 +92,15 @@ class ApiController extends AbstractController {
     }
 
     /**
-     * @Route("/login", methods="GET", name="login")
+     * @Route("/login", methods="POST", name="login")
      */
-    public function login(): JsonResponse {
-        return $this->json([
-            'message' => 'Login endpoint',
-        ]);
+    public function login(Request $request): JsonResponse {
+        $content = json_decode($request->getContent());
+
+        $user = User::createFromJSON($content);
+        $this->tauronService->login($user);
+
+        return $this->json(['token' => $user->createToken()]);
     }
 
 }

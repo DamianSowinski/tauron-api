@@ -1,5 +1,7 @@
 parameters:
     locale: en
+    date_format: '%env(DATE_FORMAT)%'
+    serialize_date_format: '%env(SERIALIZE_DATE_FORMAT)%'
     regex_date: '%env(REGEX_DATE)%'
     regex_month_date: '%env(REGEX_MONTH_DATE)%'
 
@@ -8,6 +10,8 @@ services:
         autowire: true
         autoconfigure: true
         bind:
+            $dateFormat: '%date_format%'
+            $serializeDateFormat: '%serialize_date_format%'
             $regexDate: '%regex_date%'
             $regexMonthDate: '%regex_month_date%'
 
@@ -22,7 +26,3 @@ services:
     App\Controller\:
         resource: '../src/Controller/'
         tags: [ 'controller.service_arguments' ]
-
-    App\EventListener\ExceptionListener:
-        tags:
-            - { name: kernel.event_listener, event: kernel.exception }

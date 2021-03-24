@@ -2,10 +2,12 @@
 
 namespace App\Tests\functional;
 
+use DateTime;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
 class ApiResourceTest extends WebTestCase {
+
     /**
      * @dataProvider provideUrls
      * @param string $url
@@ -18,10 +20,44 @@ class ApiResourceTest extends WebTestCase {
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
     }
 
+    public function testLoginSuccessfully() {
+        $client = self::createClient();
+
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertNotNull($token);
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+    }
+
     public function testGetDay() {
         $client = self::createClient();
 
-        $client->request('GET', '/days/21-03-2021');
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
+
+        $client->request('GET', '/days/23-03-2021', [], [], $headers);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
     }
@@ -30,7 +66,7 @@ class ApiResourceTest extends WebTestCase {
         $client = self::createClient();
 
         $client->request('GET', '/days/32-03-2021');
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
         self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
     }
 
@@ -46,7 +82,7 @@ class ApiResourceTest extends WebTestCase {
         $client = self::createClient();
 
         $client->request('GET', '/months/13-2021');
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
         self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
     }
 
@@ -61,9 +97,16 @@ class ApiResourceTest extends WebTestCase {
     public function testPassInvalidYear() {
         $client = self::createClient();
 
-        $client->request('GET', '/years/sss');
+        $client->request('GET', '/years/1967');
         self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
-        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+
+        $now = new DateTime('now');
+        $nextYear = (int)$now->format('Y') + 1;
+
+        $client->request('GET', '/years/' . $nextYear);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
     }
 
     public function testGetRange() {
@@ -105,8 +148,7 @@ class ApiResourceTest extends WebTestCase {
             ['/months/03-2021'],
             ['/years/2021'],
             ['/range?from=01-01-2021&to=21-03-2021'],
-            ['/collection'],
-            ['/login'],
+            ['/collection']
         ];
     }
 }

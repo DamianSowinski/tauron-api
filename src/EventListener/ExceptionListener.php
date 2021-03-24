@@ -2,6 +2,8 @@
 
 namespace App\EventListener;
 
+use App\Model\Problem;
+use App\Model\ProblemException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -18,9 +20,16 @@ class ExceptionListener {
         $statusCode = null;
         $problem = null;
 
-        $statusCode = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : Response::HTTP_INTERNAL_SERVER_ERROR;
+        if ($exception instanceof ProblemException) {
+            $problem = $exception->getProblem();
+            $statusCode = $exception->getProblem()->getStatusCode();
 
-        $response = new JsonResponse(['title' => 'Not Found'], $statusCode);
+        } else {
+            $statusCode = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : Response::HTTP_INTERNAL_SERVER_ERROR;
+            $problem = new Problem($statusCode);
+        }
+
+        $response = new JsonResponse($problem, $statusCode);
         $response->headers->set('Content-Type', 'application/problem+json');
 
         $event->setResponse($response);
