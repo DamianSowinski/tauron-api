@@ -16,11 +16,13 @@ class ApiController extends AbstractController {
     private ApiHelper $apiHelper;
     private TauronService $tauronService;
     private string $dateFormat;
+    private string $monthDateFormat;
 
-    public function __construct(ApiHelper $apiHelper, TauronService $tauronService, string $dateFormat) {
+    public function __construct(ApiHelper $apiHelper, TauronService $tauronService, string $dateFormat, string $monthDateFormat) {
         $this->apiHelper = $apiHelper;
         $this->tauronService = $tauronService;
         $this->dateFormat = $dateFormat;
+        $this->monthDateFormat = $monthDateFormat;
     }
 
     /**
@@ -40,7 +42,6 @@ class ApiController extends AbstractController {
         $this->apiHelper->checkDate($date);
 
         $date = DateTime::createFromFormat($this->dateFormat, $date);
-
         $token = $request->headers->get('Authorization');
         $user = User::createFromToken($token);
 
@@ -52,19 +53,24 @@ class ApiController extends AbstractController {
     /**
      * @Route("/months/{monthDate}", methods="GET", name="months")
      */
-    public function months(string $monthDate): JsonResponse {
-
+    public function months(Request $request, string $monthDate): JsonResponse {
+        $this->apiHelper->checkContentType($request);
         $this->apiHelper->checkMonthDate($monthDate);
 
-        return $this->json([
-            'message' => 'Day endpoint',
-        ]);
+        $monthDate = DateTime::createFromFormat($this->monthDateFormat, $monthDate);
+        $token = $request->headers->get('Authorization');
+        $user = User::createFromToken($token);
+
+        $monthUsage = $this->tauronService->getMonthUsage($monthDate, $user);
+
+        return $this->json($monthUsage);
     }
 
     /**
      * @Route("/years/{year<\d+>}", methods="GET", name="years")
      */
-    public function years(int $year): JsonResponse {
+    public function years(Request $request, int $year): JsonResponse {
+        $this->apiHelper->checkContentType($request);
 
         $this->apiHelper->checkYear($year);
 

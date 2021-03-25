@@ -4,23 +4,23 @@ namespace App\Model;
 
 use DateTime;
 
-class DayUsage {
+class MonthUsage {
     private DateTime $date;
     private ZoneUsage $consume;
     private ZoneUsage $generate;
     /**
-     * @var HourUsage[]
+     * @var DayUsage[]
      */
-    private array $hours;
+    private array $days;
 
     /**
-     * @param HourUsage[] $hours
+     * @param DayUsage[] $days
      */
-    public function __construct(DateTime $date, ZoneUsage $consume, ZoneUsage $generate, array $hours) {
+    public function __construct(DateTime $date, ZoneUsage $consume, ZoneUsage $generate, array $days) {
         $this->date = $date;
         $this->consume = $consume;
         $this->generate = $generate;
-        $this->hours = $hours;
+        $this->days = $days;
     }
 
     public function getDate(): DateTime {
@@ -36,10 +36,11 @@ class DayUsage {
     }
 
     /**
-     * @return HourUsage[]
+     * @return DayUsage[]
      */
-    public function getHours(): array {
-        return $this->hours;
+    public function getDays(): array {
+        return $this->days;
     }
+
 }
 

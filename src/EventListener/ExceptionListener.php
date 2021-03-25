@@ -16,6 +16,11 @@ class ExceptionListener {
     }
 
     public function onKernelException(ExceptionEvent $event) {
+
+        if ($_SERVER['APP_ENV'] === 'dev' ) {
+            return null;
+        }
+
         $exception = $event->getThrowable();
         $statusCode = null;
         $problem = null;

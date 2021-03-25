@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Model\DayUsage;
 use App\Model\HourUsage;
+use App\Model\MonthUsage;
 use App\Model\Problem;
 use App\Model\ProblemException;
 use App\Model\User;
@@ -53,6 +54,36 @@ class TauronService {
         return new DayUsage($date, $consume, $generate, $hours);
     }
 
+    public function getMonthUsage(DateTime $date, User $user): MonthUsage {
+        $properties = [
+            'dane[chartMonth]' => $date->format('m'),
+            'dane[chartYear]' => $date->format('Y'),
+            'dane[paramType]' => 'month',
+        ];
+
+        $data = $this->fetchData($properties, $user);
+        $consume = new ZoneUsage();
+        $generate = new ZoneUsage();
+        $days = [];
+
+        if (property_exists($data, 'dane')) {
+            $consumesData = property_exists($data->dane, 'chart') ? $data->dane->chart : null;
+            $generatesData = property_exists($data->dane, 'OZE') ? $data->dane->OZE : null;
+
+            for ($index = 0; $index < count($consumesData); $index++) {
+                $dayConsume = new ZoneUsage();
+                $dayGenerate = new ZoneUsage();
+
+                $dayConsume->setTotal($this->fetchDayUsage($consumesData, $index, $consume));
+                $dayGenerate->setTotal($this->fetchDayUsage($generatesData, $index, $generate));
+
+                $days[] = new DayUsage($this->setDay($index+1, $date), $dayConsume, $dayGenerate, []);
+            }
+        }
+
+        return new MonthUsage($date, $consume, $generate, $days);
+    }
+
     public function login(User $user): void {
         $sessionId = null;
         $response = null;
@@ -99,7 +130,7 @@ class TauronService {
     }
 
     private function fetchHourUsage(object $data, int $index, ZoneUsage $zoneUsage): float {
-        $value = null;
+        $value = 0;
 
         if (property_exists($data, $index) && property_exists($data->{$index}, 'EC')) {
             $value = $data->{$index}->EC;
@@ -110,6 +141,24 @@ class TauronService {
 
             if ($data->{$index}->Zone === '2') {
                 $zoneUsage->addNightUsage($value);
+            }
+        }
+
+        return $value;
+    }
+
+    private function fetchDayUsage(array $data, int $index, ZoneUsage $zoneUsage): float {
+        $value = 0;
+
+        if ($data[$index] && property_exists($data[$index], 'suma')) {
+            $value = $data[$index]->suma;
+
+            if (property_exists($data[$index], 'tariff1')) {
+                $zoneUsage->addDayUsage($data[$index]->tariff1 ?? 0);
+            }
+
+            if (property_exists($data[$index], 'tariff2')) {
+                $zoneUsage->addNightUsage($data[$index]->tariff2 ?? 0);
             }
         }
 
@@ -171,5 +220,16 @@ class TauronService {
         $problem = new Problem(401, Problem::TYPE_FETCH_DATA_ERROR);
         $problem->set('detail', 'Unsuccessfully fetch data, try again later');
         throw new ProblemException($problem);
+    }
+
+    private function setDay(int $day, DateTime $date): DateTime {
+        $year = $date->format('Y');
+        $month = $date->format('m');
+
+        $result = new DateTime();
+        $result->setDate($year, $month, $day);
+
+        return $result;
+
     }
 }

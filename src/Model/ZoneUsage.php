@@ -38,8 +38,11 @@ class ZoneUsage {
         return round($this->night, $round);
     }
 
+    public function setTotal(float $total): void {
+        $this->total = $total;
+    }
+
     public function getTotal(int $round = 2): float {
         return round($this->total, $round);
     }
-
 }

@@ -57,7 +57,7 @@ class ApiResourceTest extends WebTestCase {
 
         $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
 
-        $client->request('GET', '/days/23-03-2021', [], [], $headers);
+        $client->request('GET', '/days/21-03-2021', [], [], $headers);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
     }
@@ -73,7 +73,21 @@ class ApiResourceTest extends WebTestCase {
     public function testGetMonth() {
         $client = self::createClient();
 
-        $client->request('GET', '/months/03-2020');
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
+
+        $client->request('GET', '/months/03-2020', [], [], $headers);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
     }
@@ -144,11 +158,11 @@ class ApiResourceTest extends WebTestCase {
     public function provideUrls(): array {
         return [
             ['/'],
-            ['/days/21-03-2021'],
-            ['/months/03-2021'],
-            ['/years/2021'],
-            ['/range?from=01-01-2021&to=21-03-2021'],
-            ['/collection']
+//            ['/days/21-03-2021'],
+//            ['/months/03-2021'],
+//            ['/years/2021'],
+//            ['/range?from=01-01-2021&to=21-03-2021'],
+//            ['/collection']
         ];
     }
 }
