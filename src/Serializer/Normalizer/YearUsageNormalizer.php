@@ -2,17 +2,17 @@
 
 namespace App\Serializer\Normalizer;
 
-use App\Model\MonthUsage;
+use App\Model\YearUsage;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\ContextAwareNormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 
-class MonthUsageNormalizer implements ContextAwareNormalizerInterface, CacheableSupportsMethodInterface, NormalizerAwareInterface {
+class YearUsageNormalizer implements ContextAwareNormalizerInterface, CacheableSupportsMethodInterface, NormalizerAwareInterface {
     use NormalizerAwareTrait;
 
-    private const ALREADY_CALLED = 'MONTH_USAGE_NORMALIZER_ALREADY_CALLED';
+    private const ALREADY_CALLED = 'YEAR_USAGE_NORMALIZER_ALREADY_CALLED';
     private string $serializeDateFormat;
 
     public function __construct(string $serializeDateFormat) {
@@ -25,11 +25,11 @@ class MonthUsageNormalizer implements ContextAwareNormalizerInterface, Cacheable
             return false;
         }
 
-        return $data instanceof MonthUsage;
+        return $data instanceof YearUsage;
     }
 
     /**
-     * @param MonthUsage $object
+     * @param YearUsage $object
      * @param null $format
      * @param array $context
      * @return array
@@ -41,16 +41,16 @@ class MonthUsageNormalizer implements ContextAwareNormalizerInterface, Cacheable
         $data = $this->normalizer->normalize($object, $format, $context);
 
         $days = [];
-        foreach ($object->getDays() as $day) {
+        foreach ($object->getMonths() as $day) {
             $days[] = [
-                'day' => (int)$day->getDate()->format('d'),
+                'month' => (int)$day->getDate()->format('m'),
                 'consume' => $day->getConsume()->getTotal(3),
                 'generate' => $day->getGenerate()->getTotal(3),
             ];
         }
 
-        $data['date'] = $object->getDate()->format('Y-m');
-        $data['days'] = $days;
+        $data['year'] = $object->getYear();
+        $data['months'] = $days;
 
         return $data;
     }

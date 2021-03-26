@@ -71,12 +71,14 @@ class ApiController extends AbstractController {
      */
     public function years(Request $request, int $year): JsonResponse {
         $this->apiHelper->checkContentType($request);
-
         $this->apiHelper->checkYear($year);
 
-        return $this->json([
-            'message' => 'Year endpoint',
-        ]);
+        $token = $request->headers->get('Authorization');
+        $user = User::createFromToken($token);
+
+        $yearUsage = $this->tauronService->getYearUsage($year, $user, false);
+
+        return $this->json($yearUsage);
     }
 
     /**

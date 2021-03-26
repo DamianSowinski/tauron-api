@@ -3,6 +3,8 @@
 namespace App\Serializer\Normalizer;
 
 use App\Model\DayUsage;
+use App\Model\MonthUsage;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\ContextAwareNormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
@@ -27,6 +29,13 @@ class DayUsageNormalizer implements ContextAwareNormalizerInterface, CacheableSu
         return $data instanceof DayUsage;
     }
 
+    /**
+     * @param MonthUsage $object
+     * @param null $format
+     * @param array $context
+     * @return array
+     * @throws ExceptionInterface
+     */
     public function normalize($object, $format = null, array $context = array()): array {
 
         $context[self::ALREADY_CALLED] = true;

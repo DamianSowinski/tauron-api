@@ -8,6 +8,7 @@ use App\Model\MonthUsage;
 use App\Model\Problem;
 use App\Model\ProblemException;
 use App\Model\User;
+use App\Model\YearUsage;
 use App\Model\ZoneUsage;
 use DateTime;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
@@ -77,11 +78,42 @@ class TauronService {
                 $dayConsume->setTotal($this->fetchDayUsage($consumesData, $index, $consume));
                 $dayGenerate->setTotal($this->fetchDayUsage($generatesData, $index, $generate));
 
-                $days[] = new DayUsage($this->setDay($index+1, $date), $dayConsume, $dayGenerate, []);
+                $days[] = new DayUsage($this->setDatePart($date, $index + 1), $dayConsume, $dayGenerate, []);
             }
         }
 
         return new MonthUsage($date, $consume, $generate, $days);
+    }
+
+    public function getYearUsage(int $year, User $user, bool $includeMonths = true): YearUsage {
+        $properties = [
+            'dane[chartYear]' => $year,
+            'dane[paramType]' => 'year',
+        ];
+
+        $data = $this->fetchData($properties, $user);
+        $consume = new ZoneUsage();
+        $generate = new ZoneUsage();
+        $months = [];
+
+        if (property_exists($data, 'dane')) {
+            $consumesData = property_exists($data->dane, 'chart') ? $data->dane->chart : null;
+            $generatesData = property_exists($data->dane, 'OZE') ? $data->dane->OZE : null;
+
+            for ($index = 0; $index < count($consumesData); $index++) {
+                $dayConsume = new ZoneUsage();
+                $dayGenerate = new ZoneUsage();
+
+                $dayConsume->setTotal($this->fetchDayUsage($consumesData, $index, $consume));
+                $dayGenerate->setTotal($this->fetchDayUsage($generatesData, $index, $generate));
+
+                if ($includeMonths) {
+                    $months[] = new MonthUsage($this->setDatePart(new DateTime(), 1, $index + 1), $dayConsume, $dayGenerate, []);
+                }
+            }
+        }
+
+        return new YearUsage($year, $consume, $generate, $months);
     }
 
     public function login(User $user): void {
@@ -222,9 +254,9 @@ class TauronService {
         throw new ProblemException($problem);
     }
 
-    private function setDay(int $day, DateTime $date): DateTime {
-        $year = $date->format('Y');
-        $month = $date->format('m');
+    private function setDatePart(DateTime $date, int $day, int $month = null, int $year = null): DateTime {
+        $year = $year ?? $date->format('Y');
+        $month = $month ?? $date->format('m');
 
         $result = new DateTime();
         $result->setDate($year, $month, $day);

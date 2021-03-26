@@ -103,7 +103,21 @@ class ApiResourceTest extends WebTestCase {
     public function testGetYear() {
         $client = self::createClient();
 
-        $client->request('GET', '/years/2021');
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
+
+        $client->request('GET', '/years/2021', [], [], $headers);
         self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
     }
