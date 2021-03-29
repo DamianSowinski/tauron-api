@@ -3,6 +3,7 @@ parameters:
     date_format: '%env(DATE_FORMAT)%'
     month_date_format: '%env(MONTH_DATE_FORMAT)%'
     serialize_date_format: '%env(SERIALIZE_DATE_FORMAT)%'
+    serialize_month_date_format: '%env(SERIALIZE_MONTH_DATE_FORMAT)%'
     regex_date: '%env(REGEX_DATE)%'
     regex_month_date: '%env(REGEX_MONTH_DATE)%'
 
@@ -14,6 +15,7 @@ services:
             $dateFormat: '%date_format%'
             $monthDateFormat: '%month_date_format%'
             $serializeDateFormat: '%serialize_date_format%'
+            $serializeMonthDateFormat: '%serialize_month_date_format%'
             $regexDate: '%regex_date%'
             $regexMonthDate: '%regex_month_date%'
 

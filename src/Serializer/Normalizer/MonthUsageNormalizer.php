@@ -15,8 +15,8 @@ class MonthUsageNormalizer implements ContextAwareNormalizerInterface, Cacheable
     private const ALREADY_CALLED = 'MONTH_USAGE_NORMALIZER_ALREADY_CALLED';
     private string $serializeDateFormat;
 
-    public function __construct(string $serializeDateFormat) {
-        $this->serializeDateFormat = $serializeDateFormat;
+    public function __construct(string $serializeMonthDateFormat) {
+        $this->serializeDateFormat = $serializeMonthDateFormat;
     }
 
     public function supportsNormalization($data, $format = null, array $context = []): bool {
@@ -49,7 +49,7 @@ class MonthUsageNormalizer implements ContextAwareNormalizerInterface, Cacheable
             ];
         }
 
-        $data['date'] = $object->getDate()->format('Y-m');
+        $data['date'] = $object->getDate()->format($this->serializeDateFormat);
         $data['days'] = $days;
 
         return $data;

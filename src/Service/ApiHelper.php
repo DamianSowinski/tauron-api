@@ -17,8 +17,8 @@ class ApiHelper {
         $this->regexMonthDate = $regexMonthDate;
     }
 
-    public function checkContentType(Request $request) {
-         $contentType = $request->headers->get('Content-Type');
+    public function checkContentType(Request $request): void {
+        $contentType = $request->headers->get('Content-Type');
 
         if ('application/json' !== $contentType) {
             $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
@@ -27,8 +27,16 @@ class ApiHelper {
         }
     }
 
+    public function checkQueryParameterExist(Request $request, string $parameter) {
+        if (!$request->query->get($parameter)) {
+            $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
+            $problem->set('detail', sprintf('Query parameter: %s not exist', $parameter));
+            throw new ProblemException($problem);
+        }
+    }
+
     public function checkDate(string $date): void {
-        $isValidDate = preg_match($this->regexDate, $date, $matches, PREG_OFFSET_CAPTURE, 0);
+        $isValidDate = preg_match($this->regexDate, $date, $matches, PREG_OFFSET_CAPTURE);
 
         if (!$isValidDate) {
             $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
@@ -38,7 +46,7 @@ class ApiHelper {
     }
 
     public function checkMonthDate(string $monthDate): void {
-        $isValidDate = preg_match($this->regexMonthDate, $monthDate, $matches, PREG_OFFSET_CAPTURE, 0);
+        $isValidDate = preg_match($this->regexMonthDate, $monthDate, $matches, PREG_OFFSET_CAPTURE);
 
         if (!$isValidDate) {
             $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
@@ -58,18 +66,32 @@ class ApiHelper {
         }
     }
 
-    public function readHeaders(Request $request) {
-        $sessionId = $request->headers->get('Authorization');
-        $pointId = $request->headers->get('PointId');
+    public function checkRange(string $startDate, string $endDate) {
+        $isValidStartDate = preg_match($this->regexMonthDate, $startDate, $matches, PREG_OFFSET_CAPTURE);
+        $isValidEndDate = preg_match($this->regexMonthDate, $endDate, $matches, PREG_OFFSET_CAPTURE);
 
-        if (!$sessionId || !$pointId) {
+        if (!$isValidStartDate || !$isValidEndDate) {
             $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
-            $problem->set('detail', 'Missing Session id or Point Id in header');
+            $problem->set('detail', 'Invalid date format, It must be in MM-YYYY format.');
             throw new ProblemException($problem);
         }
 
-//        $this->sessionId = $sessionId;
-//        $this->pointId = $pointId;
+        $startDateParts = explode('-', $startDate);
+        $endDateParts = explode('-', $endDate);
 
+        if ((int)$startDateParts[1] > (int)$endDateParts[1] ||
+            ((int)$startDateParts[1] === (int)$endDateParts[1] && (int)$startDateParts[0] >= (int)$endDateParts[0])) {
+            $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
+            $problem->set('detail', 'Start date must be earlier than end date.');
+            throw new ProblemException($problem);
+        }
     }
+
+    public function setDatePart(DateTime $date, int $day, int $month = null, int $year = null): void {
+        $year = $year ?? $date->format('Y');
+        $month = $month ?? $date->format('m');
+
+        $date->setDate($year, $month, $day);
+    }
+
 }

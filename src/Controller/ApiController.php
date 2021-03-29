@@ -84,10 +84,25 @@ class ApiController extends AbstractController {
     /**
      * @Route("/range", methods="GET", name="range")
      */
-    public function range(): JsonResponse {
-        return $this->json([
-            'message' => 'Range endpoint',
-        ]);
+    public function range(Request $request): JsonResponse {
+        $this->apiHelper->checkContentType($request);
+        $this->apiHelper->checkQueryParameterExist($request, 'startDate');
+        $this->apiHelper->checkQueryParameterExist($request, 'endDate');
+
+        $startDateStr = $request->query->get('startDate');
+        $endDateStr = $request->query->get('endDate');
+
+        $this->apiHelper->checkRange($startDateStr, $endDateStr);
+
+        $startDate = DateTime::createFromFormat($this->monthDateFormat, $startDateStr);
+        $endDate = DateTime::createFromFormat($this->monthDateFormat, $endDateStr);
+
+        $token = $request->headers->get('Authorization');
+        $user = User::createFromToken($token);
+
+        $rangeUsage = $this->tauronService->getRangeUsage($startDate, $endDate, $user);
+
+        return $this->json($rangeUsage);
     }
 
     /**

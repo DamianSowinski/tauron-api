@@ -7,6 +7,7 @@ use App\Model\HourUsage;
 use App\Model\MonthUsage;
 use App\Model\Problem;
 use App\Model\ProblemException;
+use App\Model\RangeUsage;
 use App\Model\User;
 use App\Model\YearUsage;
 use App\Model\ZoneUsage;
@@ -24,9 +25,37 @@ class TauronService {
     private const CHARTS_URL = 'https://elicznik.tauron-dystrybucja.pl/index/charts';
 
     private HttpClientInterface $client;
+    private ApiHelper $apiHelper;
 
-    public function __construct(HttpClientInterface $client) {
+    public function __construct(HttpClientInterface $client, ApiHelper $apiHelper) {
         $this->client = $client;
+        $this->apiHelper = $apiHelper;
+    }
+
+    public function login(User $user): void {
+        $sessionId = null;
+        $response = null;
+
+        try {
+            $response = $this->client->request('POST', self::LOGIN_URL, [
+                'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
+                'body' => [
+                    'username' => $user->getUsername(),
+                    'password' => $user->getPassword(),
+                    'service' => self::SERVICE_URL
+                ],
+            ]);
+        } catch (TransportExceptionInterface $e) {
+            $this->loginError();
+        }
+
+        $sessionId = $this->getSessionId($response);
+
+        if (null === $sessionId) {
+            $this->loginError();
+        }
+
+        $user->setSessionId($sessionId);
     }
 
     public function getDayUsage(DateTime $date, User $user): DayUsage {
@@ -55,10 +84,10 @@ class TauronService {
         return new DayUsage($date, $consume, $generate, $hours);
     }
 
-    public function getMonthUsage(DateTime $date, User $user): MonthUsage {
+    public function getMonthUsage(DateTime $monthDate, User $user, bool $includeDays = true): MonthUsage {
         $properties = [
-            'dane[chartMonth]' => $date->format('m'),
-            'dane[chartYear]' => $date->format('Y'),
+            'dane[chartMonth]' => $monthDate->format('m'),
+            'dane[chartYear]' => $monthDate->format('Y'),
             'dane[paramType]' => 'month',
         ];
 
@@ -78,11 +107,15 @@ class TauronService {
                 $dayConsume->setTotal($this->fetchDayUsage($consumesData, $index, $consume));
                 $dayGenerate->setTotal($this->fetchDayUsage($generatesData, $index, $generate));
 
-                $days[] = new DayUsage($this->setDatePart($date, $index + 1), $dayConsume, $dayGenerate, []);
+                if ($includeDays) {
+                    $date = clone $monthDate;
+                    $this->apiHelper->setDatePart($date, $index + 1);
+                    $days[] = new DayUsage($date, $dayConsume, $dayGenerate, []);
+                }
             }
         }
 
-        return new MonthUsage($date, $consume, $generate, $days);
+        return new MonthUsage($monthDate, $consume, $generate, $days);
     }
 
     public function getYearUsage(int $year, User $user, bool $includeMonths = true): YearUsage {
@@ -108,7 +141,9 @@ class TauronService {
                 $dayGenerate->setTotal($this->fetchDayUsage($generatesData, $index, $generate));
 
                 if ($includeMonths) {
-                    $months[] = new MonthUsage($this->setDatePart(new DateTime(), 1, $index + 1), $dayConsume, $dayGenerate, []);
+                    $date = new DateTime();
+                    $this->apiHelper->setDatePart($date, 1, $index + 1);
+                    $months[] = new MonthUsage($date, $dayConsume, $dayGenerate, []);
                 }
             }
         }
@@ -116,30 +151,28 @@ class TauronService {
         return new YearUsage($year, $consume, $generate, $months);
     }
 
-    public function login(User $user): void {
-        $sessionId = null;
-        $response = null;
+    public function getRangeUsage(DateTime $startDate, DateTime $endDate, User $user): RangeUsage {
+        $currentDate = clone $startDate;
+        $this->apiHelper->setDatePart($currentDate, 1);
 
-        try {
-            $response = $this->client->request('POST', self::LOGIN_URL, [
-                'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
-                'body' => [
-                    'username' => $user->getUsername(),
-                    'password' => $user->getPassword(),
-                    'service' => self::SERVICE_URL
-                ],
-            ]);
-        } catch (TransportExceptionInterface $e) {
-            $this->loginError();
+        $consume = new ZoneUsage();
+        $generate = new ZoneUsage();
+        $months = [];
+
+        while ($currentDate <= $endDate) {
+            $monthData = $this->getMonthUsage(clone $currentDate, $user, false);
+
+            array_push($months, $monthData);
+
+            $consume->addDayUsage($monthData->getConsume()->getDay());
+            $consume->addNightUsage($monthData->getConsume()->getNight());
+            $generate->addDayUsage($monthData->getGenerate()->getDay());
+            $generate->addNightUsage($monthData->getGenerate()->getNight());
+
+            $currentDate->modify('next month');
         }
 
-        $sessionId = $this->getSessionId($response);
-
-        if (null === $sessionId) {
-            $this->loginError();
-        }
-
-        $user->setSessionId($sessionId);
+        return new RangeUsage($startDate, $endDate, $consume, $generate, $months);
     }
 
     private function fetchData(array $properties, User $user): object {
@@ -254,14 +287,4 @@ class TauronService {
         throw new ProblemException($problem);
     }
 
-    private function setDatePart(DateTime $date, int $day, int $month = null, int $year = null): DateTime {
-        $year = $year ?? $date->format('Y');
-        $month = $month ?? $date->format('m');
-
-        $result = new DateTime();
-        $result->setDate($year, $month, $day);
-
-        return $result;
-
-    }
 }

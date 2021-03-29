@@ -2,19 +2,21 @@
 
 namespace App\Serializer\Normalizer;
 
-use App\Model\YearUsage;
+use App\Model\RangeUsage;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\ContextAwareNormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerAwareTrait;
 
-class YearUsageNormalizer implements ContextAwareNormalizerInterface, CacheableSupportsMethodInterface, NormalizerAwareInterface {
+class RangeUsageNormalizer implements ContextAwareNormalizerInterface, CacheableSupportsMethodInterface, NormalizerAwareInterface {
     use NormalizerAwareTrait;
 
-    private const ALREADY_CALLED = 'YEAR_USAGE_NORMALIZER_ALREADY_CALLED';
+    private const ALREADY_CALLED = 'RANGE_USAGE_NORMALIZER_ALREADY_CALLED';
+    private string $serializeDateFormat;
 
-    public function __construct() {
+    public function __construct(string $serializeMonthDateFormat) {
+        $this->serializeDateFormat = $serializeMonthDateFormat;
     }
 
     public function supportsNormalization($data, $format = null, array $context = []): bool {
@@ -23,11 +25,11 @@ class YearUsageNormalizer implements ContextAwareNormalizerInterface, CacheableS
             return false;
         }
 
-        return $data instanceof YearUsage;
+        return $data instanceof RangeUsage;
     }
 
     /**
-     * @param YearUsage $object
+     * @param RangeUsage $object
      * @param null $format
      * @param array $context
      * @return array
@@ -41,13 +43,14 @@ class YearUsageNormalizer implements ContextAwareNormalizerInterface, CacheableS
         $months = [];
         foreach ($object->getMonths() as $month) {
             $months[] = [
-                'month' => (int)$month->getDate()->format('m'),
+                'month' => $month->getDate()->format($this->serializeDateFormat),
                 'consume' => $month->getConsume()->getTotal(3),
                 'generate' => $month->getGenerate()->getTotal(3),
             ];
         }
 
-        $data['year'] = $object->getYear();
+        $data['startDate'] = $object->getStartDate()->format($this->serializeDateFormat);
+        $data['endDate'] = $object->getEndDate()->format($this->serializeDateFormat);
         $data['months'] = $months;
 
         return $data;
