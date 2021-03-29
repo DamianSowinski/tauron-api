@@ -106,6 +106,20 @@ class ApiController extends AbstractController {
     }
 
     /**
+     * @Route("/all", methods="GET", name="all")
+     */
+    public function all(Request $request): JsonResponse {
+        $this->apiHelper->checkContentType($request);
+
+        $token = $request->headers->get('Authorization');
+        $user = User::createFromToken($token);
+
+        $allUsage = $this->tauronService->getAllUsage($user);
+
+        return $this->json($allUsage);
+    }
+
+    /**
      * @Route("/collection", methods="GET", name="collection")
      */
     public function collection(): JsonResponse {

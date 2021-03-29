@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Model\AllUsage;
 use App\Model\DayUsage;
 use App\Model\HourUsage;
 use App\Model\MonthUsage;
@@ -12,6 +13,7 @@ use App\Model\User;
 use App\Model\YearUsage;
 use App\Model\ZoneUsage;
 use DateTime;
+use DateTimeImmutable;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
@@ -173,6 +175,35 @@ class TauronService {
         }
 
         return new RangeUsage($startDate, $endDate, $consume, $generate, $months);
+    }
+
+    public function getAllUsage(User $user): AllUsage {
+        $date = new DateTimeImmutable('');
+        $year = $date->format('Y');
+        $minYear = $year - 5;
+
+        $consume = new ZoneUsage();
+        $generate = new ZoneUsage();
+        $years = [];
+
+        do {
+            $yearData = $this->getYearUsage($year, $user, false);
+
+            if (0 === (int)$yearData->getConsume()->getTotal()) {
+                break;
+            }
+
+            array_push($years, $yearData);
+
+            $consume->addDayUsage($yearData->getConsume()->getDay());
+            $consume->addNightUsage($yearData->getConsume()->getNight());
+            $generate->addDayUsage($yearData->getGenerate()->getDay());
+            $generate->addNightUsage($yearData->getGenerate()->getNight());
+            $year--;
+
+        } while ($year >= $minYear);
+
+        return new AllUsage($consume, $generate, array_reverse($years));
     }
 
     private function fetchData(array $properties, User $user): object {

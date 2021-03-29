@@ -11,10 +11,12 @@ class ApiHelper {
 
     private string $regexDate;
     private string $regexMonthDate;
+    private string $monthDateFormat;
 
-    public function __construct(string $regexDate, string $regexMonthDate) {
+    public function __construct(string $regexDate, string $regexMonthDate, string $monthDateFormat) {
         $this->regexDate = $regexDate;
         $this->regexMonthDate = $regexMonthDate;
+        $this->monthDateFormat = $monthDateFormat;
     }
 
     public function checkContentType(Request $request): void {
@@ -76,11 +78,10 @@ class ApiHelper {
             throw new ProblemException($problem);
         }
 
-        $startDateParts = explode('-', $startDate);
-        $endDateParts = explode('-', $endDate);
+        $date1 = DateTime::createFromFormat($this->monthDateFormat, $startDate);
+        $date2 = DateTime::createFromFormat($this->monthDateFormat, $endDate);
 
-        if ((int)$startDateParts[1] > (int)$endDateParts[1] ||
-            ((int)$startDateParts[1] === (int)$endDateParts[1] && (int)$startDateParts[0] >= (int)$endDateParts[0])) {
+        if ($this->monthsDiff($date1, $date2) < 0 || $this->monthsDiff($date1, $date2) > 18) {
             $problem = new Problem(400, Problem::TYPE_VALIDATION_ERROR);
             $problem->set('detail', 'Start date must be earlier than end date.');
             throw new ProblemException($problem);
@@ -94,4 +95,13 @@ class ApiHelper {
         $date->setDate($year, $month, $day);
     }
 
+    public function monthsDiff(DateTime $startDate, DateTime $endDate): int {
+        $year1 = (int)$startDate->format('Y');
+        $year2 = (int)$endDate->format('Y');
+
+        $month1 = (int)$startDate->format('m');
+        $month2 = (int)$endDate->format('m');
+
+        return (($year2 - $year1) * 12) + ($month2 - $month1);
+    }
 }

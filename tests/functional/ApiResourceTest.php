@@ -168,6 +168,60 @@ class ApiResourceTest extends WebTestCase {
         self::assertCount(3, $responseData['months']);
     }
 
+    public function testPassInvalidRange() {
+        $client = self::createClient();
+
+        $client->request('GET', '/range');
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+
+        $client->request('GET', '/range?startDate=02-2021');
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+
+        $client->request('GET', '/range?startDate=03-2021&endDate=01-2021');
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+    }
+
+    public function testGetAll() {
+        $client = self::createClient();
+
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
+
+        $client->request('GET', '/all', [], [], $headers);
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertArrayHasKey('consume', $responseData);
+        self::assertArrayHasKey('generate', $responseData);
+        self::assertArrayHasKey('years', $responseData);
+        self::assertCount(2, $responseData['years']);
+    }
+
+    public function testPassInvalidAll() {
+        $client = self::createClient();
+
+        $client->request('GET', '/all');
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+
+    }
+
     public function testGetCollection() {
         $client = self::createClient();
 
