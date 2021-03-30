@@ -58,12 +58,12 @@
       "cache:clear": "symfony-cmd",
       "assets:install %PUBLIC_DIR%": "symfony-cmd"
     },
-    "post-install-cmd": [
-      "@auto-scripts"
-    ],
-    "post-update-cmd": [
-      "@auto-scripts"
-    ]
+    "post-install-cmd": "@auto-scripts",
+    "post-update-cmd": "@auto-scripts",
+
+    "test": "php bin/phpunit",
+    "test-functional": "php bin/phpunit tests/Functional",
+    "test-services": "php bin/phpunit tests/Service"
   },
   "conflict": {
     "symfony/symfony": "*"

@@ -76,7 +76,7 @@ class ApiController extends AbstractController {
         $token = $request->headers->get('Authorization');
         $user = User::createFromToken($token);
 
-        $yearUsage = $this->tauronService->getYearUsage($year, $user, false);
+        $yearUsage = $this->tauronService->getYearUsage($year, $user);
 
         return $this->json($yearUsage);
     }
