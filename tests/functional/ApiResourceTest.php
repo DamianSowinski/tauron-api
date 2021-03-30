@@ -8,18 +8,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApiResourceTest extends WebTestCase {
 
-    /**
-     * @dataProvider provideUrls
-     * @param string $url
-     */
-    public function testEndpointsExistApp(string $url) {
-        $client = self::createClient();
-
-        $client->request('GET', $url);
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
-        self::assertResponseStatusCodeSame(Response::HTTP_OK);
-    }
-
     public function testLoginSuccessfully() {
         $client = self::createClient();
 
@@ -27,17 +15,12 @@ class ApiResourceTest extends WebTestCase {
         $body = $_ENV['TAURON_LOGIN_DATA'];
 
         $client->request('POST', '/login', [], [], $headers, $body);
-
-        $content = json_decode($client->getResponse()->getContent());
-        $token = null;
-
-        if (isset($content->token)) {
-            $token = $content->token;
-        }
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
 
         self::assertResponseHeaderSame('Content-Type', 'application/json');
-        self::assertNotNull($token);
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertArrayHasKey('token', $responseData);
     }
 
     public function testGetDay() {
@@ -47,7 +30,6 @@ class ApiResourceTest extends WebTestCase {
         $body = $_ENV['TAURON_LOGIN_DATA'];
 
         $client->request('POST', '/login', [], [], $headers, $body);
-
         $content = json_decode($client->getResponse()->getContent());
         $token = null;
 
@@ -205,8 +187,8 @@ class ApiResourceTest extends WebTestCase {
         $response = $client->getResponse();
         $responseData = json_decode($response->getContent(), true);
 
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertArrayHasKey('consume', $responseData);
         self::assertArrayHasKey('generate', $responseData);
         self::assertArrayHasKey('years', $responseData);
@@ -225,24 +207,57 @@ class ApiResourceTest extends WebTestCase {
     public function testGetCollection() {
         $client = self::createClient();
 
-        $client->request('GET', '/collection');
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
-        self::assertResponseStatusCodeSame(Response::HTTP_OK);
-    }
-
-    public function testLogin() {
-        $client = self::createClient();
         $headers = ['CONTENT_TYPE' => 'application/json'];
         $body = $_ENV['TAURON_LOGIN_DATA'];
 
         $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
+
+        $client->request('GET', '/collection?days[]=29-03-2021&days[]=28-03-2021&months[]=03-2021&years[]=2021', [], [], $headers );
         $response = $client->getResponse();
         $responseData = json_decode($response->getContent(), true);
 
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
-        self::assertArrayHasKey('token', $responseData);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('days', $responseData);
+        self::assertArrayHasKey('months', $responseData);
+        self::assertArrayHasKey('years', $responseData);
     }
+
+    public function testPassInvalidCollection() {
+        $client = self::createClient();
+
+        $client->request('GET', '/collection');
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+
+        $content = json_decode($client->getResponse()->getContent());
+        $token = null;
+
+        if (isset($content->token)) {
+            $token = $content->token;
+        }
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $token];
+
+        $client->request('GET', '/collection?days[]=00-03-2021', [], [], $headers);
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        self::assertResponseHeaderSame('Content-Type', 'application/problem+json');
+    }
+
 
     public function test404Exception() {
         $client = self::createClient();
@@ -252,15 +267,5 @@ class ApiResourceTest extends WebTestCase {
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
-    public function provideUrls(): array {
-        return [
-            ['/'],
-//            ['/days/21-03-2021'],
-//            ['/months/03-2021'],
-//            ['/years/2021'],
-//            ['/range?from=01-01-2021&to=21-03-2021'],
-//            ['/collection']
-        ];
-    }
 }
 

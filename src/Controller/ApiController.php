@@ -110,10 +110,7 @@ class ApiController extends AbstractController {
      */
     public function all(Request $request): JsonResponse {
         $this->apiHelper->checkContentType($request);
-
-        $token = $request->headers->get('Authorization');
-        $user = User::createFromToken($token);
-
+        $user = $this->getUserFromToken($request);
         $allUsage = $this->tauronService->getAllUsage($user);
 
         return $this->json($allUsage);
@@ -122,10 +119,19 @@ class ApiController extends AbstractController {
     /**
      * @Route("/collection", methods="GET", name="collection")
      */
-    public function collection(): JsonResponse {
-        return $this->json([
-            'message' => 'Collection endpoint',
-        ]);
+    public function collection(Request $request): JsonResponse {
+        $this->apiHelper->checkContentType($request);
+
+        $days = $request->query->all('days');
+        $months = $request->query->all('months');
+        $years = $request->query->all('years');
+
+        $this->apiHelper->checkCollection($days, $months, $years);
+
+        $user = $this->getUserFromToken($request);
+        $collection = $this->tauronService->getCollection($days, $months, $years, $user);
+
+        return $this->json($collection);
     }
 
     /**
@@ -140,4 +146,8 @@ class ApiController extends AbstractController {
         return $this->json(['token' => $user->createToken()]);
     }
 
+    private function getUserFromToken(Request $request): User {
+        $token = $request->headers->get('Authorization');
+        return User::createFromToken($token);
+    }
 }

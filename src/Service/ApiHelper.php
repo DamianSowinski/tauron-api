@@ -88,6 +88,20 @@ class ApiHelper {
         }
     }
 
+    public function checkCollection(array $days, array $months, array $years) {
+        foreach ($days as $day) {
+            $this->checkDate($day);
+        }
+
+        foreach ($months as $month) {
+            $this->checkMonthDate($month);
+        }
+
+        foreach ($years as $year) {
+            $this->checkYear((int)$year);
+        }
+    }
+
     public function setDatePart(DateTime $date, int $day, int $month = null, int $year = null): void {
         $year = $year ?? $date->format('Y');
         $month = $month ?? $date->format('m');

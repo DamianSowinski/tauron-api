@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Model\AllUsage;
+use App\Model\CollectionUsage;
 use App\Model\DayUsage;
 use App\Model\HourUsage;
 use App\Model\MonthUsage;
@@ -28,10 +29,17 @@ class TauronService {
 
     private HttpClientInterface $client;
     private ApiHelper $apiHelper;
+    private string $dateFormat;
+    private string $monthDateFormat;
 
-    public function __construct(HttpClientInterface $client, ApiHelper $apiHelper) {
+    public function __construct(HttpClientInterface $client,
+                                ApiHelper $apiHelper,
+                                string $dateFormat,
+                                string $monthDateFormat) {
         $this->client = $client;
         $this->apiHelper = $apiHelper;
+        $this->dateFormat = $dateFormat;
+        $this->monthDateFormat = $monthDateFormat;
     }
 
     public function login(User $user): void {
@@ -60,7 +68,7 @@ class TauronService {
         $user->setSessionId($sessionId);
     }
 
-    public function getDayUsage(DateTime $date, User $user): DayUsage {
+    public function getDayUsage(DateTime $date, User $user, bool $includeDays = true): DayUsage {
         $properties = [
             'dane[chartDay]' => $date->format('d.m.Y'),
             'dane[paramType]' => 'day',
@@ -79,7 +87,9 @@ class TauronService {
                 $hourConsume = $this->fetchHourUsage($consumesData, $hour, $consume);
                 $hourGenerate = $this->fetchHourUsage($generatesData, $hour, $generate);
 
-                $hours[] = new HourUsage($hour, $hourConsume, $hourGenerate);
+                if ($includeDays) {
+                    $hours[] = new HourUsage($hour, $hourConsume, $hourGenerate);
+                }
             }
         }
 
@@ -206,6 +216,27 @@ class TauronService {
         return new AllUsage($consume, $generate, array_reverse($years));
     }
 
+    public function getCollection(array $days, array $months, array $years, User $user): CollectionUsage {
+
+        $collection = new CollectionUsage();
+
+        foreach ($days as $day) {
+            $date = DateTime::createFromFormat($this->dateFormat, $day);
+            $collection->addDayUsage($this->getDayUsage($date, $user));
+        }
+
+        foreach ($months as $month) {
+            $date = DateTime::createFromFormat($this->monthDateFormat, $month);
+            $collection->addMonthUsage($this->getMonthUsage($date, $user));
+        }
+
+        foreach ($years as $year) {
+            $collection->addYearUsage($this->getYearUsage($year, $user));
+        }
+
+        return $collection;
+    }
+
     private function fetchData(array $properties, User $user): object {
         if (!$user->getSessionId()) {
             $this->login($user);
@@ -317,5 +348,4 @@ class TauronService {
         $problem->set('detail', 'Unsuccessfully fetch data, try again later');
         throw new ProblemException($problem);
     }
-
 }
