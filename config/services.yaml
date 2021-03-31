@@ -1,5 +1,6 @@
 parameters:
     locale: en
+    site_base_url: '%env(SITE_BASE_URL)%'
     date_format: '%env(DATE_FORMAT)%'
     month_date_format: '%env(MONTH_DATE_FORMAT)%'
     serialize_date_format: '%env(SERIALIZE_DATE_FORMAT)%'
@@ -12,6 +13,7 @@ services:
         autowire: true
         autoconfigure: true
         bind:
+            $siteUrl: '%site_base_url%'
             $dateFormat: '%date_format%'
             $monthDateFormat: '%month_date_format%'
             $serializeDateFormat: '%serialize_date_format%'
