@@ -68,7 +68,7 @@ class TauronService {
         $user->setSessionId($sessionId);
     }
 
-    public function getDayUsage(DateTime $date, User $user, bool $includeDays = true): DayUsage {
+    public function getDayUsage(DateTime $date, User $user, bool $includeHours = true): DayUsage {
         $properties = [
             'dane[chartDay]' => $date->format('d.m.Y'),
             'dane[paramType]' => 'day',
@@ -87,7 +87,7 @@ class TauronService {
                 $hourConsume = $this->fetchHourUsage($consumesData, $hour, $consume);
                 $hourGenerate = $this->fetchHourUsage($generatesData, $hour, $generate);
 
-                if ($includeDays) {
+                if ($includeHours) {
                     $hours[] = new HourUsage($hour, $hourConsume, $hourGenerate);
                 }
             }

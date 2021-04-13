@@ -25,4 +25,22 @@ class CustomApiTestCase extends WebTestCase {
         return $headers;
     }
 
+    protected function loginAsTestUserAndSetHeaders(KernelBrowser $client): array {
+        $headers = ['CONTENT_TYPE' => 'application/json'];
+        $body = $_ENV['TAURON_TEST_LOGIN_DATA'];
+
+        $client->request('POST', '/login', [], [], $headers, $body);
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('token', $responseData);
+
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_AUTHORIZATION' => $responseData['token']];
+
+        return $headers;
+    }
+
+
 }

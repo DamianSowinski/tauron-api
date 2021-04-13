@@ -183,5 +183,122 @@ class ApiResourceTest extends CustomApiTestCase {
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
+
+    public function testLoginAsTestUserSuccessfully() {
+        $client = self::createClient();
+        $this->loginAsTestUserAndSetHeaders($client);
+    }
+
+    public function testGetMockDay() {
+        $client = self::createClient();
+        $headers = $this->loginAsTestUserAndSetHeaders($client);
+        $client->request('GET', '/days/21-03-2021', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('date', $responseData);
+        self::assertArrayHasKey('consume', $responseData);
+        self::assertArrayHasKey('generate', $responseData);
+        self::assertArrayHasKey('hours', $responseData);
+        self::assertEquals('2021-03-21', $responseData['date']);
+        self::assertCount(24, $responseData['hours']);
+    }
+
+    public function testGetMockMonth() {
+        $client = self::createClient();
+        $headers = $this->loginAsTestUserAndSetHeaders($client);
+
+        $client->request('GET', '/months/02-2021', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('date', $responseData);
+        self::assertArrayHasKey('consume', $responseData);
+        self::assertArrayHasKey('generate', $responseData);
+        self::assertArrayHasKey('days', $responseData);
+        self::assertEquals('2021-02', $responseData['date']);
+        self::assertCount(28, $responseData['days']);
+
+        $client->request('GET', '/months/03-2021', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertEquals('2021-03', $responseData['date']);
+        self::assertCount(31, $responseData['days']);
+    }
+
+    public function testGetMockYear() {
+        $client = self::createClient();
+        $headers = $this->loginAsTestUserAndSetHeaders($client);
+        $client->request('GET', '/years/2021', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('year', $responseData);
+        self::assertArrayHasKey('consume', $responseData);
+        self::assertArrayHasKey('generate', $responseData);
+        self::assertArrayHasKey('months', $responseData);
+        self::assertEquals('2021', $responseData['year']);
+        self::assertCount(12, $responseData['months']);
+    }
+
+    public function testGetMockRange() {
+        $client = self::createClient();
+        $headers = $this->loginAsTestUserAndSetHeaders($client);
+        $client->request('GET', '/range?startDate=01-2021&endDate=03-2021', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertArrayHasKey('startDate', $responseData);
+        self::assertArrayHasKey('endDate', $responseData);
+        self::assertArrayHasKey('months', $responseData);
+        self::assertEquals('2021-01', $responseData['startDate']);
+        self::assertEquals('2021-03', $responseData['endDate']);
+        self::assertCount(3, $responseData['months']);
+    }
+
+    public function testGetMockAll() {
+        $client = self::createClient();
+        $headers = $this->loginAsTestUserAndSetHeaders($client);
+        $client->request('GET', '/all', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('consume', $responseData);
+        self::assertArrayHasKey('generate', $responseData);
+        self::assertArrayHasKey('years', $responseData);
+        self::assertCount(3, $responseData['years']);
+    }
+
+    public function testGetMockCollection() {
+        $client = self::createClient();
+        $headers = $this->loginAsTestUserAndSetHeaders($client);
+        $client->request('GET', '/collection?days[]=29-03-2021&days[]=28-03-2021&months[]=03-2021&years[]=2021', [], [], $headers);
+
+        $response = $client->getResponse();
+        $responseData = json_decode($response->getContent(), true);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('days', $responseData);
+        self::assertArrayHasKey('months', $responseData);
+        self::assertArrayHasKey('years', $responseData);
+    }
 }
 

@@ -28,6 +28,15 @@ The request body should be in a format:
 }
 ```
 
+To login as test user: 
+```json
+{
+  "pointId": "0",
+  "username": "test",
+  "password": "test"
+}
+```
+
 After successfully login endpoint return **token** which is encrypted (`aes-128-cbc`) login data.  
 Default encryption parameters are:
 
@@ -50,12 +59,22 @@ Endpoint                                                    | Description       
 `/range?startDate={date}&endDate={date}`                    | Get total usage between start date and end date. Expect query string with dates in `mm-yyyy` format.                                              | `/range?startDate=01-2021&endDate=03-2021`
 `/all`                                                      | Get total usage and array with years usage.                                                                                                       | `/all`
 `/collection?days[]={date}&months[]={date}&years[]={year}`  | Get collection with specific set of data. Expect query string with dates and years. Each part of the query string may be duplicated or be omitted | `/collection?days[]=29-03-2021&days[]=28-03-2021&months[]=03-2021&years[]=2021`
+`/login`                                                    | Expect login data sending in request body                                                                                                         | `/login`
 
 Each of the endpoints requires headers with:
 
 ```http request
 Authorization: [ token ]
 Content-Type: application/json
+```
+
+### API Client and CORS
+
+To allow an API Client getting data, set the Client app url in `.env` file:
+```
+###> nelmio/cors-bundle ###
+CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+###< nelmio/cors-bundle ###
 ```
 
 ### Tests

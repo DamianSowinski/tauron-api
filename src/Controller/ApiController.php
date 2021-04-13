@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Model\User;
 use App\Service\ApiHelper;
+use App\Service\MockTauronService;
 use App\Service\TauronService;
 use DateTime;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,16 +17,23 @@ class ApiController extends AbstractController {
 
     private ApiHelper $apiHelper;
     private TauronService $tauronService;
+    private MockTauronService $mockTauronService;
     private string $dateFormat;
     private string $monthDateFormat;
     private string $siteUrl;
 
-    public function __construct(ApiHelper $apiHelper, TauronService $tauronService, string $dateFormat, string $monthDateFormat, string $siteUrl) {
+    public function __construct(ApiHelper $apiHelper,
+                                TauronService $tauronService,
+                                MockTauronService $mockTauronService,
+                                string $dateFormat,
+                                string $monthDateFormat,
+                                string $siteUrl) {
         $this->apiHelper = $apiHelper;
         $this->tauronService = $tauronService;
         $this->dateFormat = $dateFormat;
         $this->monthDateFormat = $monthDateFormat;
         $this->siteUrl = $siteUrl;
+        $this->mockTauronService = $mockTauronService;
     }
 
     /**
@@ -112,7 +120,9 @@ class ApiController extends AbstractController {
         $token = $request->headers->get('Authorization');
         $user = User::createFromToken($token);
 
-        $dayUsage = $this->tauronService->getDayUsage($date, $user);
+        $dayUsage = $user->isTestUser() ?
+            $this->mockTauronService->getDayUsage($date) :
+            $this->tauronService->getDayUsage($date, $user);
 
         return $this->json($dayUsage);
     }
@@ -128,7 +138,9 @@ class ApiController extends AbstractController {
         $token = $request->headers->get('Authorization');
         $user = User::createFromToken($token);
 
-        $monthUsage = $this->tauronService->getMonthUsage($monthDate, $user);
+        $monthUsage = $user->isTestUser() ?
+            $this->mockTauronService->getMonthUsage($monthDate) :
+            $this->tauronService->getMonthUsage($monthDate, $user);
 
         return $this->json($monthUsage);
     }
@@ -143,7 +155,9 @@ class ApiController extends AbstractController {
         $token = $request->headers->get('Authorization');
         $user = User::createFromToken($token);
 
-        $yearUsage = $this->tauronService->getYearUsage($year, $user);
+        $yearUsage = $user->isTestUser() ?
+            $this->mockTauronService->getYearUsage($year) :
+            $this->tauronService->getYearUsage($year, $user);
 
         return $this->json($yearUsage);
     }
@@ -167,7 +181,9 @@ class ApiController extends AbstractController {
         $token = $request->headers->get('Authorization');
         $user = User::createFromToken($token);
 
-        $rangeUsage = $this->tauronService->getRangeUsage($startDate, $endDate, $user);
+        $rangeUsage = $user->isTestUser() ?
+            $this->mockTauronService->getRangeUsage($startDate, $endDate) :
+            $this->tauronService->getRangeUsage($startDate, $endDate, $user);
 
         return $this->json($rangeUsage);
     }
@@ -178,7 +194,10 @@ class ApiController extends AbstractController {
     public function all(Request $request): JsonResponse {
         $this->apiHelper->checkContentType($request);
         $user = $this->getUserFromToken($request);
-        $allUsage = $this->tauronService->getAllUsage($user);
+
+        $allUsage = $user->isTestUser() ?
+            $this->mockTauronService->getAllUsage() :
+            $this->tauronService->getAllUsage($user);
 
         return $this->json($allUsage);
     }
@@ -196,7 +215,9 @@ class ApiController extends AbstractController {
         $this->apiHelper->checkCollection($days, $months, $years);
 
         $user = $this->getUserFromToken($request);
-        $collection = $this->tauronService->getCollection($days, $months, $years, $user);
+        $collection = $user->isTestUser() ?
+            $this->mockTauronService->getCollection($days, $months, $years) :
+            $this->tauronService->getCollection($days, $months, $years, $user);
 
         return $this->json($collection);
     }
@@ -208,7 +229,10 @@ class ApiController extends AbstractController {
         $content = json_decode($request->getContent());
 
         $user = User::createFromJSON($content);
-        $this->tauronService->login($user);
+
+        if (!$user->isTestUser()) {
+            $this->tauronService->login($user);
+        }
 
         return $this->json(['token' => $user->createToken()]);
     }

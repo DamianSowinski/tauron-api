@@ -41,7 +41,7 @@ class AllUsageNormalizer implements ContextAwareNormalizerInterface, CacheableSu
         $years = [];
         foreach ($object->getYears() as $year) {
             $years[] = [
-                'month' => $year->getYear(),
+                'year' => $year->getYear(),
                 'consume' => $year->getConsume()->getTotal(3),
                 'generate' => $year->getGenerate()->getTotal(3),
             ];

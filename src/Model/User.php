@@ -48,6 +48,10 @@ class User {
         return $encodedTxt;
     }
 
+    public function isTestUser(): bool {
+        return $this->pointId === '0' && $this->username === 'test';
+    }
+
     static function createFromJSON($jsonData): User {
 
         if (!isset($jsonData->pointId) || !isset($jsonData->username) || !isset($jsonData->password)) {
