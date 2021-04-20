@@ -85,6 +85,13 @@ Running the tests is simple:
 composer run-script test
 ```
 
+Example
+-----
+Example Angular SPA app using this API: [tauron.es3d.pl](https://tauron.es3d.pl)
+
+![phone](screenshots/screenshot.jpg)
+
+
 License
 -------
 
