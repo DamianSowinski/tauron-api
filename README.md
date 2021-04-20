@@ -89,7 +89,7 @@ Example
 -----
 Example Angular SPA app using this API: [tauron.es3d.pl](https://tauron.es3d.pl)
 
-![phone](screenshots/screenshot.jpg)
+![phone](screenshots/mock.jpg)
 
 
 License
